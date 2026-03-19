@@ -140,13 +140,45 @@ def collect(goal: str | None, date: str | None, config_path: str):
             continue
 
         if not goal_config.builtin:
-            console.print(f"  [yellow]⊘[/] {goal_config.name} — custom pipeline (not yet supported)")
-            continue
+            # Load custom pipeline
+            if not goal_config.pipeline:
+                console.print(f"  [yellow]⊘[/] {goal_config.name} — custom pipeline path not set")
+                continue
 
-        pipeline = builtin_pipelines.get(goal_config.id)
-        if not pipeline:
-            console.print(f"  [yellow]⊘[/] {goal_config.name} — unknown built-in pipeline")
-            continue
+            pipeline_path = config_file.parent / goal_config.pipeline
+            if not pipeline_path.exists():
+                console.print(f"  [yellow]⊘[/] {goal_config.name} — pipeline file not found: {pipeline_path}")
+                continue
+
+            try:
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("custom_pipeline", pipeline_path)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+
+                # Find Pipeline subclass
+                pipeline_class = None
+                for attr_name in dir(module):
+                    attr = getattr(module, attr_name)
+                    if (isinstance(attr, type) and
+                        attr.__name__ != 'Pipeline' and
+                        hasattr(attr, 'collect')):
+                        pipeline_class = attr
+                        break
+
+                if not pipeline_class:
+                    console.print(f"  [yellow]⊘[/] {goal_config.name} — no Pipeline class found")
+                    continue
+
+                pipeline = pipeline_class()
+            except Exception as e:
+                console.print(f"  [yellow]⊘[/] {goal_config.name} — failed to load pipeline: {e}")
+                continue
+        else:
+            pipeline = builtin_pipelines.get(goal_config.id)
+            if not pipeline:
+                console.print(f"  [yellow]⊘[/] {goal_config.name} — unknown built-in pipeline")
+                continue
 
         console.print(f"  [bright_magenta]{goal_config.name}[/]")
 
