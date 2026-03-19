@@ -176,6 +176,22 @@ def collect(goal: str | None, date: str | None, config_path: str):
 
     console.print(f"\n[green]✓[/] Results written to {config.db_path}")
 
+    # Check alerts after collection
+    if config.alerts and config.alerts.get('enabled'):
+        console.print(f"\n[bright_magenta]🔔 Checking alerts...[/]")
+        from .alerting import AlertManager, load_alert_config
+
+        alert_config = load_alert_config({'alerts': config.alerts})
+        alert_manager = AlertManager(alert_config, config.db_path)
+        alerts = alert_manager.check_and_alert(date_str)
+
+        if alerts:
+            console.print(f"  [yellow]⚠[/] {len(alerts)} alert(s) triggered")
+            for alert in alerts:
+                console.print(f"    • {alert.get('message', '').split(chr(10))[0]}")
+        else:
+            console.print("  [green]✓[/] All metrics within thresholds")
+
 
 # ━━━ oa serve ━━━
 

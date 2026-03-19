@@ -43,6 +43,7 @@ class ProjectConfig:
     agents: list[AgentConfig] = field(default_factory=list)
     goals: list[GoalConfig] = field(default_factory=list)
     db_path: Path = field(default_factory=lambda: Path("data/monitor.db"))
+    alerts: dict = field(default_factory=dict)
 
     @classmethod
     def load(cls, path: Path | str) -> "ProjectConfig":
@@ -57,6 +58,9 @@ class ProjectConfig:
         if not raw_db.is_absolute():
             raw_db = path.parent / raw_db
         config.db_path = raw_db.resolve()
+
+        # Load alerts config
+        config.alerts = data.get("alerts", {})
 
         for agent_data in data.get("agents", []):
             config.agents.append(AgentConfig(
@@ -97,6 +101,10 @@ class ProjectConfig:
             ],
             "goals": [],
         }
+
+        # Add alerts config if present
+        if self.alerts:
+            data["alerts"] = self.alerts
 
         for goal in self.goals:
             goal_data: dict[str, Any] = {
