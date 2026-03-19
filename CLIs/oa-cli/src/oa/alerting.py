@@ -30,6 +30,7 @@ class AlertConfig:
     targets: list[str]
     rules: list[AlertRule]
     cooldown_minutes: int = 60
+    account: str = "jarvis"  # Slack account to use
 
 
 class AlertManager:
@@ -152,12 +153,12 @@ class AlertManager:
         )
 
     def _send_slack(self, message: str, rule: AlertRule) -> dict | None:
-        """Send alert to Slack via OpenClaw message tool."""
+        """Send alert to Slack via OpenClaw."""
         try:
             # Import here to avoid circular dependency
             from oa.core.slack_notifier import SlackNotifier
 
-            notifier = SlackNotifier()
+            notifier = SlackNotifier(account=self.config.account)
             for target in self.config.targets:
                 notifier.send(target, message)
 
@@ -201,4 +202,5 @@ def load_alert_config(config_dict: dict) -> AlertConfig:
         targets=alerts.get('targets', []),
         rules=rules,
         cooldown_minutes=alerts.get('cooldown_minutes', 60),
+        account=alerts.get('account', 'jarvis'),
     )

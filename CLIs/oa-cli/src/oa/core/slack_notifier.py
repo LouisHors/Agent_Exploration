@@ -8,10 +8,11 @@ from pathlib import Path
 
 
 class SlackNotifier:
-    """Send notifications to Slack via OpenClaw CLI."""
+    """Send notifications to Slack via OpenClaw."""
 
-    def __init__(self):
+    def __init__(self, account: str = "jarvis"):
         self.openclaw_bin = self._find_openclaw()
+        self.account = account
 
     def _find_openclaw(self) -> str | None:
         """Find OpenClaw binary."""
@@ -45,12 +46,13 @@ class SlackNotifier:
             return False
 
         try:
-            # Use openclaw message command
+            # Use openclaw message command with account
             cmd = [
                 self.openclaw_bin,
                 'message',
                 'send',
                 '--channel', 'slack',
+                '--account', self.account,
                 '--target', target,
                 '--message', message,
             ]
@@ -66,6 +68,7 @@ class SlackNotifier:
                 print(f"Slack notification failed: {result.stderr}")
                 return False
 
+            print(f"  ✓ Slack notification sent to {target}")
             return True
 
         except Exception as e:
